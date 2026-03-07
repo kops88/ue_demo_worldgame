@@ -44,6 +44,9 @@ struct FyyMovementStateSettings : public FTableRowBase
 	FALSMovementStanceSettings Aiming;
 };
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FRagdollStateChangedSignature, bool, bRagdollState);
+
+
 UCLASS()
 class WORLDGAME_API AyyBaseCharacter : public ACharacter
 {
@@ -68,6 +71,23 @@ public:
 	void SetOverlayState(EyyOverlayState NewState, bool bForce = false);
 	UFUNCTION(BlueprintCallable, Category = "Character States")
 	void SetMovementState(EyyMovementState NewState, bool bForce = false);
+	UFUNCTION(BlueprintCallable, Category = "Character States")
+	void SetMovementAction(EyyMovementAction NewAction, bool bForce = false);
+	
+	
+	
+	/** Ragdolling*/
+	UFUNCTION(BlueprintCallable, Category = "Character States")
+	void ReplicatedRagdollStart();
+	UFUNCTION(BlueprintCallable, NetMulticast, Reliable, Category = "Character States")
+	void Multicast_RagdollStart();
+	UFUNCTION(BlueprintCallable, Category = "Ragdoll System")
+	virtual void RagdollStart();
+	UPROPERTY(BlueprintAssignable, Category = "ALS|Input")
+	FRagdollStateChangedSignature RagdollStateChangedDelegate;
+	UPROPERTY(BlueprintReadOnly, Replicated, Category = "Ragdoll System")
+	FVector TargetRagdollLocation = FVector::ZeroVector;
+	bool bPreRagdollURO = false;
 	
 protected:
 	void SetMovementModel();
@@ -79,6 +99,7 @@ protected:
 	virtual void OnViewModeChanged();
 	virtual void OnOverlayStateChanged(EyyOverlayState PreviousState);
 	virtual void OnMovementStateChanged(EyyMovementState PreviousState);
+	virtual void OnMovementActionChanged(EyyMovementAction PreviousAction);
 	
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Movement System")
@@ -94,7 +115,10 @@ protected:
 	EyyStance DesiredStance = EyyStance::Standing;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "State Values")
 	EyyOverlayState OverlayState = EyyOverlayState::Default;
-
+	UPROPERTY(BlueprintReadOnly, Category = "State Values")
+	EyyMovementAction MovementAction = EyyMovementAction::None;
+	UPROPERTY(BlueprintReadOnly, Category = "Rotation System")
+	FRotator InAirRotation = FRotator::ZeroRotator;
 	
 	UPROPERTY(BlueprintReadOnly, Category = "State Values")
 	EyyGait Gait = EyyGait::Walking;

@@ -1,5 +1,14 @@
 #include "Yy/Character/yyBaseCharacter.h"
+
+#include "Components/CapsuleComponent.h"
+#include "GameFramework/CharacterMovementComponent.h"
 #include "Yy/Character/yyPlayerCameraBehavior.h"
+
+
+const FName NAME_Pelvis(TEXT("Pelvis"));
+
+
+
 // Sets default values
 AyyBaseCharacter::AyyBaseCharacter()
 {
@@ -13,11 +22,50 @@ void AyyBaseCharacter::BeginPlay()
 	Super::BeginPlay();
 	GetMesh()->AddTickPrerequisiteActor(this);
 	SetMovementModel();
+	ForceUpdateCharacterState();
+	
+	if (Stance == EyyStance::Standing)
+	{
+		UnCrouch();
+	}
+	else if (Stance == EyyStance::Crouching)
+	{
+		Crouch();
+	}
 	
 	
 	
+}
+
+/*
+ *设置 持久运动状态标志为 Ragdoll
+ *让角色"瘫倒"，像一个布娃娃一样受物理控制倒下去
+ * 设置Mesh相关碰撞
+ 
+ */
+void AyyBaseCharacter::RagdollStart()
+{
+	if (RagdollStateChangedDelegate.IsBound())
+	{
+		RagdollStateChangedDelegate.Broadcast(true);
+	}
+	TargetRagdollLocation = GetMesh()->GetSocketLocation(NAME_Pelvis);
+	bPreRagdollURO = GetMesh()->bEnableUpdateRateOptimizations;
+	GetMesh()->bEnableUpdateRateOptimizations = false;
+	GetCharacterMovement()->SetMovementMode(MOVE_None);
+	SetMovementState(EyyMovementState::Ragdoll);
 	
+	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	GetMesh()->SetCollisionObjectType(ECC_PhysicsBody);
+	GetMesh()->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+	GetMesh()->SetAllBodiesBelowSimulatePhysics(NAME_Pelvis, true, true);
 	
+	if (GetMesh()->GetAnimInstance())
+	{
+		GetMesh()->GetAnimInstance()->Montage_Stop(0.2f);
+	}
+	GetMesh()->bOnlyAllowAutonomousTickPose = true;
+	SetReplicateMovement(false);
 }
 
 void AyyBaseCharacter::SetMovementModel()
@@ -28,6 +76,8 @@ void AyyBaseCharacter::SetMovementModel()
 	MovementData = *OutRow;
 }
 
+
+/* 更新运动相关的角色状态标志 */
 void AyyBaseCharacter::ForceUpdateCharacterState()
 {
 	SetGait(DesiredGait, true);
@@ -35,9 +85,10 @@ void AyyBaseCharacter::ForceUpdateCharacterState()
 	SetRotationMode(DesiredRotationMode, true);
 	SetViewMode(ViewMode, true);
 	SetOverlayState(OverlayState, true);
-	
+	SetMovementState(MovementState, true);
+	SetMovementAction(MovementAction, true);
 }
-
+/* 更改摄像机状态Gait*/
 void AyyBaseCharacter::OnGaitChanged(EyyGait PreviousGait)
 {
 	if (CameraBehavior)
@@ -52,7 +103,6 @@ void AyyBaseCharacter::OnStanceChanged(EyyStance PreviousStance)
 	{
 		CameraBehavior->Stance = Stance;
 	}
-	
 }
 
 /* 
@@ -101,13 +151,60 @@ void AyyBaseCharacter::OnOverlayStateChanged(EyyOverlayState PreviousState)
 {
 }
 
+/*
+ *更新 持久运动状态: 地上\坠落\攀爬\失去意识的状态标志
+ * 运动组件的Crouch
+ */
 void AyyBaseCharacter::OnMovementStateChanged(EyyMovementState PreviousState)
 {
 	if (MovementState == EyyMovementState::InAir)
 	{
-	//7758;		
+		if (MovementAction == EyyMovementAction::None)
+		{
+			InAirRotation = GetActorRotation();
+			if (Stance == EyyStance::Crouching)
+			{
+				UnCrouch();
+			}
+		}
+	}
+	    /* 在空中触发翻滚， 进入布娃娃？ */
+		else if (MovementAction == EyyMovementAction::Rolling)
+		{
+			ReplicatedRagdollStart();
+		}
+	if (CameraBehavior)
+	{
+		CameraBehavior->MovementState = MovementState;
+	}
+}
+
+/* 
+ * 更新CameraBehavior的MovementAction状态标志
+ * 更新MovementComponent 运动动作发生变化, 仅限Crouch的更新, 
+ */
+void AyyBaseCharacter::OnMovementActionChanged(EyyMovementAction PreviousAction)
+{
+	if (MovementAction == EyyMovementAction::Rolling)
+	{
+		Crouch();
 	}
 	
+	if (PreviousAction == EyyMovementAction::Rolling)
+	{
+		if (DesiredStance == EyyStance::Standing)
+		{
+			UnCrouch();
+		}
+		else if (DesiredStance == EyyStance::Crouching)
+		{
+			Crouch();
+		}
+	}
+	if (CameraBehavior)
+	{
+		CameraBehavior->MovementAction = MovementAction;
+	}
 }
 
 // Called every frame
@@ -124,7 +221,7 @@ void AyyBaseCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 
 }
 
-/* 更新人物朝向状态 */
+/* 更新人物朝向状态标志 */
 void AyyBaseCharacter::SetRotationMode(EyyRotationMode NewRotationMode, bool bForce)
 {
 	if (bForce || RotationMode != NewRotationMode)
@@ -134,7 +231,7 @@ void AyyBaseCharacter::SetRotationMode(EyyRotationMode NewRotationMode, bool bFo
 		OnRotationModeChanged();
 	}
 }
-
+/* 更新人物以及Camera的Gait状态*/
 void AyyBaseCharacter::SetGait(EyyGait NewGait, bool bForce)
 {
 	if (bForce || Gait != NewGait)
@@ -145,6 +242,7 @@ void AyyBaseCharacter::SetGait(EyyGait NewGait, bool bForce)
 	}
 }
 
+/*更新人物以及Camera的Stance状态标志*/
 void AyyBaseCharacter::SetStance(EyyStance NewStance, bool bForce)
 {
 	if (bForce || Stance != NewStance)
@@ -155,7 +253,7 @@ void AyyBaseCharacter::SetStance(EyyStance NewStance, bool bForce)
 	}
 }
 
-/* 更新视角模式的标志 */
+/* 更新视角模式的状态标志 */
 void AyyBaseCharacter::SetViewMode(EyyViewMode NewViewMode, bool bForce)
 {
 	if (bForce || ViewMode != NewViewMode)
@@ -165,7 +263,7 @@ void AyyBaseCharacter::SetViewMode(EyyViewMode NewViewMode, bool bForce)
 	}
 }
 
-/* 更新人物模型的标志 */
+/* 更新人物模型的状态标志 */
 void AyyBaseCharacter::SetOverlayState(EyyOverlayState NewState, bool bForce)
 {
 	if (bForce || OverlayState != NewState)
@@ -176,6 +274,10 @@ void AyyBaseCharacter::SetOverlayState(EyyOverlayState NewState, bool bForce)
 	}
 }
 
+/*
+ *设置 持久运动状态: 地上\坠落\攀爬\失去意识的状态标志
+ * 更新CameraBehavior的MovementState状态标志
+ */
 void AyyBaseCharacter::SetMovementState(EyyMovementState NewState, bool bForce)
 {
 	if (bForce || MovementState != NewState)
@@ -183,8 +285,33 @@ void AyyBaseCharacter::SetMovementState(EyyMovementState NewState, bool bForce)
 		PrevMovementState = MovementState;
 		MovementState = NewState;
 		OnMovementStateChanged(PrevMovementState);
-		
 	}
-	
+}
+
+/*
+ * 设置运动动作的状态标志
+ * 更新CameraBehavior的MovementAction状态标志
+ */
+void AyyBaseCharacter::SetMovementAction(EyyMovementAction NewAction, bool bForce)
+{
+	if (bForce || MovementAction != NewAction)
+	{
+		const EyyMovementAction Prev = MovementAction;
+		MovementAction = NewAction;
+		OnMovementActionChanged(Prev);
+	}
+}
+
+void AyyBaseCharacter::ReplicatedRagdollStart()
+{
+	if (HasAuthority())
+	{
+		Multicast_RagdollStart();
+	}
+}
+
+void AyyBaseCharacter::Multicast_RagdollStart_Implementation()
+{
+	RagdollStart();
 }
 

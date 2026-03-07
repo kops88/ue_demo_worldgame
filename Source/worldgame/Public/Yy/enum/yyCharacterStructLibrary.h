@@ -90,7 +90,21 @@ enum class EyyMovementState : uint8
 	Ragdoll
 };
 
-
+/*  运动动作 - 攀爬、翻滚。。。 */
+UENUM(BlueprintType, meta = (ScriptName = "MovementAction"))
+enum class EyyMovementAction : uint8
+{
+	/*无动作*/
+	None,
+	/*低攀爬*/
+	LowMantle,
+	/*高攀爬*/
+	HighMantle,
+	/*翻滚*/
+	Rolling,
+	/*起身*/
+	GettingUp
+};
 
 
 

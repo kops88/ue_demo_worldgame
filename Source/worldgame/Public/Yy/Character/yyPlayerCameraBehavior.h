@@ -17,6 +17,12 @@ class WORLDGAME_API UyyPlayerCameraBehavior : public UAnimInstance
 public:
 	void SetRotationMode(EyyRotationMode RotationMode);
 	
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Read Only Data|Character Information")
+	EyyMovementState MovementState;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Read Only Data|Character Information")
+	EyyMovementAction MovementAction;
+	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Read Only Data|Character Information")
 	EyyStance Stance;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Read Only Data|Character Information")
