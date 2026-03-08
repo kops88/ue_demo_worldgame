@@ -1,306 +1,59 @@
-# ALSBaseCharacter 数据结构
 
-## 枚举类型 (EALS*)
 
-### EALSGait - 步态状态  //最常用的形态 - 行走
-| 值 | 说明 |
-|---|---|
-| Walking | 行走 |
-| Running | 跑步 |
-| Sprinting | 冲刺 |
 
-### EALSMovementAction - 移动动作 // 独立的小动作
-| 值 | 说明 |
-|---|---|
-| None | 无 |
-| LowMantle | 低处攀爬 |
-| HighMantle | 高处攀爬 |
-| Rolling | 翻滚 |
-| GettingUp | 起身 |
 
-### EALSMovementState - 移动状态  //长期使用的状态
-| 值 | 说明 |
-|---|---|
-| None | 无 |
-| Grounded | 地面 |
-| InAir | 空中 |
-| Mantling | 攀爬中 |
-| Ragdoll | 布娃娃 |
 
-### EALSOverlayState - 覆盖状态  //角色动作
-| 值 | 说明 |
-|---|---|
-| Default | 默认 |
-| Masculine | 男性化 |
-| Feminine | 女性化 |
-| Injured | 受伤 |
-| HandsTied | 双手被绑 |
-| Rifle | 步枪 |
-| PistolOneHanded | 单手手枪 |
-| PistolTwoHanded | 双手手枪 |
-| Bow | 弓箭 |
-| Torch | 火把 |
-| Binoculars | 望远镜 |
-| Box | 箱子 |
-| Barrel | 桶 |
 
-### EALSRotationMode - 旋转模式  //切换角色朝向模式
-| 值 | 说明 |
-|---|---|
-| VelocityDirection | 速度方向 |
-| LookingDirection | 视角方向 |
-| Aiming | 瞄准 |
+请给我列举出ue5中关于actor的基础功能和核心功能, 希望包括常用的, 和虽然不常用但是对理解ue5运作非常重要的
 
-### EALSStance - 姿态 //人物形体状态
-| 值 | 说明 |
-|---|---|
-| Standing | 站立 |
-| Crouching | 蹲伏 |
+根据实际支持这些功能的实际代码, 简单写出支持这些功能的伪代码
 
-### EALSViewMode - 视角模式 //模式切换
-| 值 | 说明 |
-|---|---|
-| ThirdPerson | 第三人称 |
-| FirstPerson | 第一人称 |
 
-### EALSGroundedEntryState - 地面进入状态
-| 值 | 说明 |
-|---|---|
-| None | 无 |
-| Roll | 翻滚 |
 
----
+### 4. Actor的创建（Spawn）与销毁（Elimination）
 
-## 结构体 (FALS*)
++ Actor通过 `SpawnActor()` 在运行时动态生成。
++ 使用 `Destroy()` 函数或标记为 PendingKill 进入垃圾回收，被系统安全消除。
++ 运行中创建和销毁支持游戏玩法动态性。
 
-### FALSMovementSettings - 移动设置
-| 成员 | 类型 | 说明 |
-|------|------|------|
-| WalkSpeed | float | 行走速度 |
-| RunSpeed | float | 跑步速度 |
-| SprintSpeed | float | 冲刺速度 |
-| ***MovementCurve*** | UCurveVector* | 移动曲线 |
-| ***RotationRateCurve*** | UCurveFloat* | 旋转速率曲线 |
+### 5. Actor生命周期
 
-### FALSMovementStateSettings - 移动状态设置 (继承FTableRowBase)
-| 成员 | 类型 | 说明 |
-|------|------|------|
-| VelocityDirection | FALSMovementStanceSettings | 速度方向设置 |
-| LookingDirection | FALSMovementStanceSettings | 视角方向设置 |
-| Aiming | FALSMovementStanceSettings | 瞄准设置 |
++ **加载（Load From Disk）** ：从关卡数据加载Actor，执行 `PostLoad()`, `PreInitializeComponents()`, `InitializeComponent()`，`PostInitializeComponents()`，`BeginPlay()`。
++ **编辑中播放（Play In Editor）** ：Actor在编辑器复制，运行时初始化类似加载流程。
++ **运行阶段** ：响应游戏逻辑、碰撞、事件，支持Tick，执行行为。
++ **销毁** ：标记为PendingKill，执行GC清理。
 
-### FALSMantleAsset - 攀爬资源
-| 成员 | 类型 | 说明 |
-|------|------|------|
-| AnimMontage | UAnimMontage* | 攀爬动画 |
-| PositionCorrectionCurve | UCurveVector* | 位置修正曲线 |
-| StartingOffset | FVector | 起始偏移 |
-| LowHeight | float | 低处高度 |
-| LowPlayRate | float | 低处播放速率 |
-| LowStartPosition | float | 低处起始位置 |
-| HighHeight | float | 高处高度 |
-| HighPlayRate | float | 高处播放速率 |
-| HighStartPosition | float | 高处起始位置 |
+### 6. Actor层级与组件附件
 
-### FALSCameraSettings - 相机设置
-| 成员 | 类型 | 说明 |
-|------|------|------|
-| TargetArmLength | float | 相机臂长度 |
-| SocketOffset | FVector | 插槽偏移 |
-| LagSpeed | float | 滞后速度 |
-| RotationLagSpeed | float | 旋转滞后速度 |
-| bDoCollisionTest | bool | 是否进行碰撞测试 |
++ Actor的组件可组成层级结构（父子附加）。
++ RootComponent为根节点，影响整个Actor变换。
++ 多组件协同实现复合功能，如碰撞触发器、视觉特效和音频叠加。
 
----
+### 7. 重要但较少被注意的功能
 
-## 成员变量
++ **网络复制（Replication）**
+  + Actor支持属性与函数跨网络同步。
+  + 通过标记 `Replicated` 属性和RPC函数保障网络一致性。
 
-### Input 输入
-| 变量 | 类型 | 默认值 | 说明 |
-|------|------|--------|------|
-| DesiredRotationMode | EALSRotationMode | LookingDirection | 期望旋转模式 |
-| DesiredGait | EALSGait | Running | 期望步态 |
-| DesiredStance | EALSStance | Standing | 期望姿态 |
-| LookUpDownRate | float | 1.25f | 上下视角速率 |
-| LookLeftRightRate | float | 1.25f | 左右视角速率 |
-| RollDoubleTapTimeout | float | 0.3f | 翻滚双击超时 |
-| bBreakFall | bool | false | 是否正在破摔 |
-| bSprintHeld | bool | false | 冲刺键是否按住 |
++ **类型转换（Casting）**
+  + 可将Actor对象转换为具体子类以调用特有功能。
+  + 用于多态行为处理，如判断重叠对象具体类型。
 
-### Camera System 相机系统
-| 变量 | 类型 | 默认值 | 说明 |
-|------|------|--------|------|
-| ThirdPersonFOV | float | 90.0f | 第三人称FOV |
-| FirstPersonFOV | float | 90.0f | 第一人称FOV |
-| bRightShoulder | bool | false | 右肩视角 |
-| CameraBehavior | UALSPlayerCameraBehavior* | nullptr | 相机行为实例 |
++ **垃圾回收与内存管理**
+  + Actor及其组件通过UE5的GC系统管理。
+  + 需用UPROPERTY保护UObject指针，避免提前清理。
 
-### Movement System 移动系统
-| 变量 | 类型 | 默认值 | 说明 |
-|------|------|--------|------|
-| MovementModel | FDataTableRowHandle | - | 移动模型数据表 |
-| MovementData | FALSMovementStateSettings | - | 移动数据 |
++ **生命周期回调函数**
+  + 如 `BeginPlay()`, `Tick()`, `EndPlay()`等，控制时间相关行为。
 
-### Essential Information 基础信息
-| 变量 | 类型 | 默认值 | 说明 |
-|------|------|--------|------|
-| Acceleration | FVector | ZeroVector | 加速度 |
-| bIsMoving | bool | false | 是否移动中 |
-| bHasMovementInput | bool | false | 是否有移动输入 |
-| LastVelocityRotation | FRotator | - | 上次速度朝向 |
-| LastMovementInputRotation | FRotator | - | 上次移动输入朝向 |
-| Speed | float | 0.0f | 当前速度 |
-| MovementInputAmount | float | 0.0f | 移动输入量 |
-| AimYawRate | float | 0.0f | 瞄准偏航速率 |
-| EasedMaxAcceleration | float | 0.0f | 缓动最大加速度 |
-| ReplicatedCurrentAcceleration | FVector | ZeroVector | 复制的当前加速度 |
-| ReplicatedControlRotation | FRotator | ZeroRotator | 复制的控制器旋转 |
++ **事件系统与接口支持**
+  + Actor可通过事件和接口与其他系统通信。
 
-### State Values 状态值
-| 变量 | 类型 | 默认值 | 说明 |
-|------|------|--------|------|
-| OverlayState | EALSOverlayState | Default | 覆盖状态 |
-| GroundedEntryState | EALSGroundedEntryState | - | 地面进入状态 |
-| MovementState | EALSMovementState | None | 移动状态 |
-| PrevMovementState | EALSMovementState | None | 上一个移动状态 |
-| MovementAction | EALSMovementAction | None | 移动动作 |
-| RotationMode | EALSRotationMode | LookingDirection | 旋转模式 |
-| Gait | EALSGait | Walking | 当前步态 |
-| Stance | EALSStance | Standing | 当前姿态 |
-| ViewMode | EALSViewMode | ThirdPerson | 视角模式 |
-| OverlayOverrideState | int32 | 0 | 覆盖覆盖状态 |
+### 8. 案例说明
 
-### Rotation System 旋转系统
-| 变量 | 类型 | 默认值 | 说明 |
-|------|------|--------|------|
-| TargetRotation | FRotator | ZeroRotator | 目标旋转 |
-| InAirRotation | FRotator | ZeroRotator | 空中旋转 |
-| YawOffset | float | 0.0f | 偏航偏移 |
-| AimingRotation | FRotator | ZeroRotator | 瞄准旋转 |
+假设创建一个带有碰撞盒和视觉网格的拾取物体Actor：
 
-### Breakfall System 破摔系统
-| 变量 | 类型 | 默认值 | 说明 |
-|------|------|--------|------|
-| bBreakfallOnLand | bool | true | 落地时破摔 |
-| BreakfallOnLandVelocity | float | 700.0f | 破摔落地速度阈值 |
-
-### Ragdoll System 布娃娃系统
-| 变量 | 类型 | 默认值 | 说明 |
-|------|------|--------|------|
-| bReversedPelvis | bool | false | 是否反转骨盆 |
-| bRagdollOnLand | bool | false | 落地时布娃娃 |
-| RagdollOnLandVelocity | float | 1000.0f | 布娃娃落地速度阈值 |
-| bRagdollOnGround | bool | false | 是否在地面上布娃娃 |
-| bRagdollFaceUp | bool | false | 布娃娃是否面朝上 |
-| LastRagdollVelocity | FVector | ZeroVector | 上次布娃娃速度 |
-| TargetRagdollLocation | FVector | ZeroVector | 目标布娃娃位置 |
-| ServerRagdollPull | float | 0.0f | 服务器布娃娃拉力 |
-
-### Other 其他
-| 变量 | 类型 | 默认值 | 说明 |
-|------|------|--------|------|
-| MyCharacterMovementComponent | UALSCharacterMovementComponent* | - | 自定义移动组件 |
-| VisibleMesh | USkeletalMesh* | nullptr | 可见骨架网格体 |
-| PreviousVelocity | FVector | ZeroVector | 上次速度 |
-| PreviousAimYaw | float | 0.0f | 上次瞄准偏航 |
-| LastStanceInputTime | float | 0.0f | 上次姿态输入时间 |
-| OnLandedFrictionResetTimer | FTimerHandle | - | 落地摩擦重置计时器 |
-| bEnableNetworkOptimizations | bool | false | 启用网络优化 |
-| ALSDebugComponent | UALSDebugComponent* | nullptr | 调试组件 |
-
----
-
-## 主要函数
-
-### Movement State 移动状态
-- `SetMovementState(NewState, bForce)` - 设置移动状态
-- `GetMovementState()` - 获取移动状态
-- `GetPrevMovementState()` - 获取上一个移动状态
-- `SetMovementAction(NewAction, bForce)` - 设置移动动作
-- `GetMovementAction()` - 获取移动动作
-
-### Stance 姿态
-- `SetStance(NewStance, bForce)` - 设置姿态
-- `GetStance()` - 获取姿态
-- `SetDesiredStance(NewStance)` - 设置期望姿态
-- `GetDesiredStance()` - 获取期望姿态
-
-### Gait 步态
-- `SetGait(NewGait, bForce)` - 设置步态
-- `GetGait()` - 获取步态
-- `GetDesiredGait()` - 获取期望步态
-- `SetDesiredGait(NewGait)` - 设置期望步态
-- `GetAllowedGait()` - 获取允许的步态
-- `GetActualGait(AllowedGait)` - 获取实际步态
-- `CanSprint()` - 是否可以冲刺
-
-### Rotation Mode 旋转模式
-- `SetRotationMode(NewRotationMode, bForce)` - 设置旋转模式
-- `GetRotationMode()` - 获取旋转模式
-- `SetDesiredRotationMode(NewRotMode)` - 设置期望旋转模式
-- `GetDesiredRotationMode()` - 获取期望旋转模式
-
-### View Mode 视角模式
-- `SetViewMode(NewViewMode, bForce)` - 设置视角模式
-- `GetViewMode()` - 获取视角模式
-
-### Overlay State 覆盖状态
-- `SetOverlayState(NewState, bForce)` - 设置覆盖状态
-- `GetOverlayState()` - 获取覆盖状态
-- `SetOverlayOverrideState(NewState)` - 设置覆盖覆盖状态
-- `GetOverlayOverrideState()` - 获取覆盖覆盖状态
-
-### Ragdoll System 布娃娃系统
-- `RagdollStart()` - 开始布娃娃
-- `RagdollEnd()` - 结束布娃娃
-- `GetGetUpAnimation(bRagdollFaceUpState)` - 获取起身动画(BP实现)
-
-### Camera 相机
-- `IsRightShoulder()` - 是否右肩视角
-- `SetRightShoulder(bNewRightShoulder)` - 设置右肩视角
-- `GetThirdPersonTraceParams(TraceOrigin, TraceRadius)` - 获取第三人称追踪参数
-- `GetThirdPersonPivotTarget()` - 获取第三人称枢轴目标
-- `GetFirstPersonCameraTarget()` - 获取第一人称相机目标
-- `GetCameraParameters(TPFOVOut, FPFOVOut, bRightShoulderOut)` - 获取相机参数
-- `SetCameraBehavior(CamBeh)` - 设置相机行为
-
-### Input 输入
-- `ForwardMovementAction(Value)` - 前进移动
-- `RightMovementAction(Value)` - 右移
-- `CameraUpAction(Value)` - 相机上移
-- `CameraRightAction(Value)` - 相机右移
-- `JumpAction(bValue)` - 跳跃
-- `SprintAction(bValue)` - 冲刺
-- `AimAction(bValue)` - 瞄准
-- `CameraTapAction()` - 相机点击
-- `CameraHeldAction()` - 相机按住
-- `StanceAction()` - 姿态切换
-- `WalkAction()` - 行走切换
-- `RagdollAction()` - 布娃娃
-- `VelocityDirectionAction()` - 速度方向模式
-- `LookingDirectionAction()` - 视角方向模式
-
-### Essential Information 基础信息
-- `GetAcceleration()` - 获取加速度
-- `IsMoving()` - 是否移动
-- `GetMovementInput()` - 获取移动输入
-- `GetMovementInputAmount()` - 获取移动输入量
-- `GetSpeed()` - 获取速度
-- `GetAimingRotation()` - 获取瞄准旋转
-- `GetAimYawRate()` - 获取瞄准偏航速率
-
-### Utility 工具
-- `GetAnimCurveValue(CurveName)` - 获取动画曲线值
-- `SetVisibleMesh(NewSkeletalMesh)` - 设置可见网格体
-- `GetMyMovementComponent()` - 获取移动组件
-- `GetTargetMovementSettings()` - 获取目标移动设置
-- `GetRollAnimation()` - 获取翻滚动画(BP实现)
-
-### Movement 移动
-- `OnBreakfall()` - 破摔开始(BP可实现)
-- `Replicated_PlayMontage(Montage, PlayRate)` - 复制播放蒙太奇
-
-### Delegates 委托
-- `JumpPressedDelegate` - 跳跃按下委托
-- `OnJumpedDelegate` - 已跳跃委托
-- `RagdollStateChangedDelegate` - 布娃娃状态变化委托
++ RootComponent为USceneComponent定位物体。
++ StaticMeshComponent 作为视觉展示。
++ BoxComponent 作为触发器检测玩家重叠事件。
++ 通过覆盖 `NotifyActorBeginOverlap` 实现拾取逻辑。

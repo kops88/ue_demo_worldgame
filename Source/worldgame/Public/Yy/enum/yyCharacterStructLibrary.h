@@ -4,7 +4,9 @@
 #include "Engine/DataTable.h"
 #include "PhysicalMaterials/PhysicalMaterial.h"
 #include "Materials/MaterialInterface.h"
+#include "yyCharacterStructLibrary.generated.h"
 
+/* 步伐模式*/
 UENUM(BlueprintType, meta = (ScriptName = "yy_Gait"))
 enum class EyyGait : uint8
 {
@@ -13,6 +15,7 @@ enum class EyyGait : uint8
 	Sprinting
 };
 
+/* 站or蹲*/
 UENUM(BlueprintType, meta = (ScriptName = "yy_Stance"))
 enum class EyyStance : uint8
 {
@@ -105,10 +108,40 @@ enum class EyyMovementAction : uint8
 	/*起身*/
 	GettingUp
 };
+class UCurveVector;
+class UCurveFloat;
 
-
-
-
+/* 步伐模式的速度配置 */
+USTRUCT(BlueprintType)
+struct FyyMovementSettings
+{
+	GENERATED_BODY()
+	UPROPERTY(EditAnywhere, Category = "MovementSettings")
+	float WalkSpeed = 0.0f;
+	UPROPERTY(EditAnywhere, Category = "MovementSettings")
+	float RunSpeed = 0.0f;
+	UPROPERTY(EditAnywhere, Category = "MovementSettings")
+	float SprintSpeed = 0.0f;
+	UPROPERTY(EditAnywhere, Category = "MovementSettings")
+	TObjectPtr<UCurveVector> MovementCurve = nullptr;
+	UPROPERTY(EditAnywhere, Category = "MovementSettings")
+	TObjectPtr<UCurveFloat> RotationRateCurve = nullptr;
+	
+	float GetSpeedForGait(const EyyGait Gait) const
+	{
+		switch (Gait)
+		{
+		case EyyGait::Running:
+			return RunSpeed;
+		case EyyGait::Sprinting:
+			return SprintSpeed;
+		case EyyGait::Walking:
+			return WalkSpeed;
+		default:
+			return RunSpeed;			
+		}
+	}
+};
 
 
 

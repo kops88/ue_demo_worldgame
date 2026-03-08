@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Animation/AnimInstance.h"
+#include "Yy/enum/yyCharacterStructLibrary.h"
 #include "yyPlayerCameraBehavior.generated.h"
 
 /**
@@ -39,6 +40,8 @@ public:
 	/* 是否 瞄准模式*/
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Read Only Data|Character Information")
 	bool bAiming = false;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Read Only Data|Character Information")
+	bool bRightShoulder = false;
 
 	
 };

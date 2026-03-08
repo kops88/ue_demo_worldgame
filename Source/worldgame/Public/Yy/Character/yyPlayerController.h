@@ -18,9 +18,17 @@ public:
 	void BindAction(UInputMappingContext* context);
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Input")
-	TObjectPtr<UInputMappingContext> DefaultInputMappingContext = nullptr;
+	TObjectPtr<UInputMappingContext> DefaultInputMappingContext1 = nullptr;
+	
+protected:
+	UFUNCTION()
+	void ForwardMovementAction(const FInputActionValue& Value);
+	UFUNCTION()
+	void RightMovementAction(const FInputActionValue& Value);
+	
 	
 private:
+	void SetupCamera();
 	void SetupInputs() const;
 	class AyyBaseCharacter* PossessedCharacter = nullptr;
 };
