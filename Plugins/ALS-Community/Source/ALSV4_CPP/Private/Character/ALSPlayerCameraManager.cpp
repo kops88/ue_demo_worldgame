@@ -127,9 +127,10 @@ bool AALSPlayerCameraManager::CustomCameraBehavior(float DeltaTime, FVector& Loc
 		return false;
 	}
 
+	/* 获取角色基准坐标 */
 	// Step 1: Get Camera Parameters from CharacterBP via the Camera Interface
 	const FTransform& PivotTarget = ControlledCharacter->GetThirdPersonPivotTarget();
-	const FVector& FPTarget = ControlledCharacter->GetFirstPersonCameraTarget();
+ 	const FVector& FPTarget = ControlledCharacter->GetFirstPersonCameraTarget();
 	float TPFOV = 90.0f;
 	float FPFOV = 90.0f;
 	bool bRightShoulder = false;
@@ -139,7 +140,7 @@ bool AALSPlayerCameraManager::CustomCameraBehavior(float DeltaTime, FVector& Loc
 	const FRotator& InterpResult = FMath::RInterpTo(GetCameraRotation(),
 	                                                GetOwningPlayerController()->GetControlRotation(), DeltaTime,
 	                                                GetCameraBehaviorParam(NAME_RotationLagSpeed));
-
+	/* 获取摄像机旋转, 玩家看哪, 摄像机转到哪 */
 	TargetCameraRotation = UKismetMathLibrary::RLerp(InterpResult, DebugViewRotation,
 	                                                 GetCameraBehaviorParam(TEXT("Override_Debug")), true);
 
@@ -157,6 +158,7 @@ bool AALSPlayerCameraManager::CustomCameraBehavior(float DeltaTime, FVector& Loc
 	SmoothedPivotTarget.SetLocation(AxisIndpLag);
 	SmoothedPivotTarget.SetScale3D(FVector::OneVector);
 
+	/* 基准坐标加上偏移, 微调 */
 	// Step 4: Calculate Pivot Location (BlueSphere). Get the Smoothed
 	// Pivot Target and apply local offsets for further camera control.
 	PivotLocation =
@@ -179,6 +181,7 @@ bool AALSPlayerCameraManager::CustomCameraBehavior(float DeltaTime, FVector& Loc
 		PivotTarget.GetLocation() + DebugViewOffset,
 		GetCameraBehaviorParam(NAME_Override_Debug));
 
+	/* 如果玩家和摄像机之间有物体, 拉进 */
 	// Step 6: Trace for an object between the camera and character to apply a corrective offset.
 	// Trace origins are set within the Character BP via the Camera Interface.
 	// Functions like the normal spring arm, but can allow for different trace origins regardless of the pivot
@@ -231,6 +234,7 @@ bool AALSPlayerCameraManager::CustomCameraBehavior(float DeltaTime, FVector& Loc
 	                                                              GetCameraBehaviorParam(
 		                                                              NAME_Override_Debug));
 
+	/* 输出 */
 	Location = TargetTransform.GetLocation();
 	Rotation = TargetTransform.Rotator();
 	FOV = FMath::Lerp(TPFOV, FPFOV, GetCameraBehaviorParam(NAME_Weight_FirstPerson));
