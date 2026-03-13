@@ -32,6 +32,7 @@ struct FyyMovementStateSettings : public FTableRowBase
 };
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FRagdollStateChangedSignature, bool, bRagdollState);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnJumpedSignature);
 
 
 UCLASS()
@@ -60,8 +61,32 @@ public:
 	void GetCameraParameters(float& TPFOVOut, float& FPFOVOut, bool& bRightShoulderOut) const;
 	UFUNCTION(BlueprintCallable, Category = "ALS|Camera System")
 	virtual ECollisionChannel GetThirdPersonTraceParams(FVector& TraceOrigin, float& TraceRadius);
+	
+	
+	UPROPERTY(BlueprintAssignable, Category = "ALS|Input")
+	FOnJumpedSignature OnJumpedDelegate;
 
-
+	UFUNCTION(BlueprintGetter, Category = "ALS|Essential Information")
+	float GetMovementInputAmount() const { return MovementInputAmount; }
+	UFUNCTION(BlueprintGetter, Category = "ALS|Movement System")
+	bool HasMovementInput() const { return bHasMovementInput; }
+	UFUNCTION(BlueprintGetter, Category = "ALS|Essential Information")
+	bool IsMoving() const { return bIsMoving; }
+	UFUNCTION(BlueprintGetter, Category = "ALS|Essential Information")
+	FVector GetAcceleration() const { return Acceleration; }
+	UFUNCTION(BlueprintGetter, Category = "ALS|Essential Information")
+	float GetAimYawRate() const { return AimYawRate; }
+	UFUNCTION(BlueprintGetter, Category = "ALS|Essential Information")
+	float GetSpeed() const { return Speed; }
+	UFUNCTION(BlueprintCallable, Category = "ALS|Essential Information")
+	FVector GetMovementInput() const { return ReplicatedCurrentAcceleration; };
+	UFUNCTION(BlueprintCallable, Category = "ALS|Essential Information")
+	FRotator GetAimingRotation() const { return AimingRotation; }
+	UFUNCTION(BlueprintGetter, Category = "ALS|Character States")
+	EyyMovementState GetPrevMovementState() const { return PrevMovementState; }
+	UFUNCTION(BlueprintGetter, Category = "ALS|Character States")
+	int32 GetOverlayOverrideState() const { return OverlayOverrideState; }
+	
 	UFUNCTION(BlueprintCallable, Category = "Character States")
 	void SetGait(EyyGait NewGait, bool bForce = false);
 	UFUNCTION(BlueprintCallable, Category = "Character States")
@@ -100,6 +125,10 @@ public:
 	EyyStance GetStance() const { return Stance; }
 	UFUNCTION(BlueprintGetter, Category = "ALS|Character States")
 	EyyViewMode GetViewMode() const { return ViewMode; }
+	UFUNCTION(BlueprintGetter, Category = "ALS|Character States")
+	EyyOverlayState GetOverlayState() const { return OverlayState; }
+	UFUNCTION(BlueprintGetter, Category = "ALS|Character States")
+	EyyGroundedEntryState GetGroundedEntryState() const { return GroundedEntryState; }
 
 	
 	/** Ragdolling*/
@@ -158,6 +187,8 @@ protected:
 	EyyStance DesiredStance = EyyStance::Standing;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "State Values")
 	EyyOverlayState OverlayState = EyyOverlayState::Default;
+	UPROPERTY(BlueprintReadOnly, Category = "ALS|State Values")
+	EALSGroundedEntryState GroundedEntryState;
 	UPROPERTY(BlueprintReadOnly, Category = "State Values")
 	EyyMovementAction MovementAction = EyyMovementAction::None;
 	UPROPERTY(BlueprintReadOnly, Category = "Rotation System")
@@ -188,6 +219,8 @@ protected:
 	/* 前一次 持久性运动状态 */
 	UPROPERTY(BlueprintReadOnly, Category = "State Values")
 	EyyMovementState PrevMovementState = EyyMovementState::None;
+	UPROPERTY(BlueprintReadOnly, Category = "ALS|State Values")
+	int32 OverlayOverrideState = 0;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "ALS|Skeletal Mesh")
 	TObjectPtr<USkeletalMesh> VisibleMesh = nullptr;
 	/* 第三人称视角 */
@@ -199,6 +232,9 @@ protected:
 	/* 摄像机是否在右肩 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "ALS|Camera System")
 	bool bRightShoulder = false;
+	UPROPERTY(BlueprintReadOnly, Category = "ALS|Essential Information")
+	FVector Acceleration = FVector::ZeroVector;
+	UPROPERTY(BlueprintReadOnly, Category = "ALS|State Values")
 	
 	/* camera */
 	UPROPERTY(BlueprintReadOnly, Category = "Camera")
@@ -223,8 +259,10 @@ protected:
 	float AimYawRate = 0.0f;
 	float PreviousAimYaw = 0.0f;
 	UPROPERTY(BlueprintReadOnly, Category = "ALS|Essential Information")
+	/* 是否有移动输入*/
 	bool bHasMovementInput = false;
 	UPROPERTY(BlueprintReadOnly, Category = "ALS|Essential Information")
+	/* 移动输入的数值*/
 	float MovementInputAmount = 0.0f;
 	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = "ALS|Ragdoll System")
 	bool bReversedPelvis = false;
