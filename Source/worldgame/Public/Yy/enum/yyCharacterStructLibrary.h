@@ -275,7 +275,7 @@ public:
 	}
 };
 
-
+/* 角色朝向模式 */
 USTRUCT(BlueprintType)
 struct FyyRotationMode
 {
@@ -440,13 +440,13 @@ struct FyyGroundedEntryState
 	GENERATED_BODY()
 
 private:
-	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, meta = (AllowPrivateAccess = true), Category = "ALS|Breakfall System")
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, meta = (AllowPrivateAccess = true), Category = "Breakfall System")
 	EyyGroundedEntryState State = EyyGroundedEntryState::None;
 
-	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, meta = (AllowPrivateAccess = true), Category = "ALS|Breakfall System")
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, meta = (AllowPrivateAccess = true), Category = "Breakfall System")
 	bool None_ = true;
 
-	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, meta = (AllowPrivateAccess = true), Category = "ALS|Breakfall System")
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, meta = (AllowPrivateAccess = true), Category = "Breakfall System")
 	bool Roll_ = false;
 
 public:
@@ -468,6 +468,441 @@ public:
 		Roll_ = State == EyyGroundedEntryState::Roll;
 	}
 };
+
+USTRUCT(BlueprintType)
+struct FyyAnimGraphAimingValues
+{
+	GENERATED_BODY()
+	
+	/*平滑后的瞄准旋转角度*/
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Anim Graph - Aiming Values")
+	FRotator SmoothedAimingRotation = FRotator::ZeroRotator;
+	/*脊柱旋转角度*/
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Anim Graph - Aiming Values")
+	FRotator SpineRotation = FRotator::ZeroRotator;
+	/*瞄准角度（二维向量）*/
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Anim Graph - Aiming Values")
+	FVector2D AimingAngle = FVector2D::ZeroVector;
+	/*瞄准扫描时间*/
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Anim Graph - Aiming Values")
+	float AimSweepTime = 0.5f;
+	/*输入偏航偏移时间:记录输入方向与当前朝向之间的时间偏移，用于处理角色转向的延迟*/
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Anim Graph - Aiming Values")
+	float InputYawOffsetTime = 0.0f;
+	/*前向偏航时间:控制角色向前瞄准的时间参数*/
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Anim Graph - Aiming Values")
+	float ForwardYawTime = 0.0f;
+	/*左偏航时间:控制角色向左瞄准的时间参数*/
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Anim Graph - Aiming Values")
+	float LeftYawTime = 0.0f;
+	/**/
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Anim Graph - Aiming Values")
+	float RightYawTime = 0.0f;
+};
+
+USTRUCT(BlueprintType)
+struct FyyAnimConfiguration
+{
+	GENERATED_BODY()
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Main Configuration")
+	float AnimatedWalkSpeed = 150.0f;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Main Configuration")
+	float AnimatedRunSpeed = 350.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Main Configuration")
+	float AnimatedSprintSpeed = 600.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Main Configuration")
+	float AnimatedCrouchSpeed = 150.0f;
+
+	/* 速度混合插值速度 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Main Configuration")
+	float VelocityBlendInterpSpeed = 12.0f;
+
+	/* 地面倾斜插值速度*/
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Main Configuration")
+	float GroundedLeanInterpSpeed = 4.0f;
+
+	/*空中倾斜插值速度*/
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Main Configuration")
+	float InAirLeanInterpSpeed = 4.0f;
+
+	/*平滑瞄准旋转插值速度*/
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Main Configuration")
+	float SmoothedAimingRotationInterpSpeed = 10.0f;
+
+	/*输入偏航偏移插值速度*/
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Main Configuration")
+	float InputYawOffsetInterpSpeed = 8.0f;
+
+	/*当角色速度低于这个值时，可以触发转身动画而不是直接转向*/
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Main Configuration")
+	float TriggerPivotSpeedLimit = 200.0f;
+	
+	/*用于IK（反向运动学）计算，确定脚部与地面的距离*/
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Main Configuration")
+	float FootHeight = 13.5f;
+
+	/** 动态过渡动画的激活阈值:控制何时从一种动画状态平滑过渡到另一种状态 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Main Configuration")
+	float DynamicTransitionThreshold = 8.0f;
+
+	/*脚部上方IK追踪距离 : 用于IK系统的射线追踪，检测脚部上方的碰撞 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Main Configuration")
+	float IK_TraceDistanceAboveFoot = 50.0f;
+	/*脚部下方IK追踪距离 : 用于IK系统的射线追踪，检测脚部下方的碰撞 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Main Configuration")
+	float IK_TraceDistanceBelowFoot = 45.0f;
+};
+
+
+/* 用于设置FootIK的各种参数*/
+USTRUCT(BlueprintType)
+struct FyyAnimGraphFootIK
+{
+	GENERATED_BODY()
+	
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Anim Graph - Foot IK")
+	float FootLock_L_Alpha = 0.0f;
+
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Anim Graph - Foot IK")
+	float FootLock_R_Alpha = 0.0f;
+
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Anim Graph - Foot IK")
+	bool UseFootLockCurve_L = false;
+
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Anim Graph - Foot IK")
+	bool UseFootLockCurve_R = false;
+
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Anim Graph - Foot IK")
+	FVector FootLock_L_Location = FVector::ZeroVector;
+
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Anim Graph - Foot IK")
+	FVector TargetFootLock_R_Location = FVector::ZeroVector;
+
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Anim Graph - Foot IK")
+	FVector FootLock_R_Location = FVector::ZeroVector;
+
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Anim Graph - Foot IK")
+	FRotator TargetFootLock_L_Rotation = FRotator::ZeroRotator;
+
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Anim Graph - Foot IK")
+	FRotator FootLock_L_Rotation = FRotator::ZeroRotator;
+
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Anim Graph - Foot IK")
+	FRotator TargetFootLock_R_Rotation = FRotator::ZeroRotator;
+
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Anim Graph - Foot IK")
+	FRotator FootLock_R_Rotation = FRotator::ZeroRotator;
+
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Anim Graph - Foot IK")
+	FVector FootOffset_L_Location = FVector::ZeroVector;
+
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Anim Graph - Foot IK")
+	FVector FootOffset_R_Location = FVector::ZeroVector;
+
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Anim Graph - Foot IK")
+	FRotator FootOffset_L_Rotation = FRotator::ZeroRotator;
+
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Anim Graph - Foot IK")
+	FRotator FootOffset_R_Rotation = FRotator::ZeroRotator;
+
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Anim Graph - Foot IK")
+	FVector PelvisOffset = FVector::ZeroVector;
+
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Anim Graph - Foot IK")
+	float PelvisAlpha = 0.0f;
+};
+
+/*  角色髋部方向控制器 */
+UENUM(BlueprintType, meta = (ScriptName = "ALS_HipsDirection"))
+enum class EyyHipsDirection : uint8
+{
+	F,
+	B,
+	RF,
+	RB,
+	LF,
+	LB
+};
+
+
+USTRUCT(BlueprintType)
+struct FyyAnimGraphGrounded
+{
+	GENERATED_BODY()
+	
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadWrite, Category = "Anim Graph - Grounded")
+	EyyHipsDirection TrackedHipsDirection = EyyHipsDirection::F;
+	
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Anim Graph - Grounded")
+	bool bShouldMove = false; // Should be false initially
+
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Anim Graph - Grounded")
+	bool bRotateL = false;
+
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Anim Graph - Grounded")
+	bool bRotateR = false;
+
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadWrite, Category = "Anim Graph - Grounded")
+	bool bPivot = false;
+
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Anim Graph - Grounded")
+	float RotateRate = 1.0f;
+
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Anim Graph - Grounded")
+	float RotationScale = 0.0f;
+
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Anim Graph - Grounded")
+	float DiagonalScaleAmount = 0.0f;
+
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Anim Graph - Grounded")
+	float WalkRunBlend = 0.0f;
+
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Anim Graph - Grounded")
+	float StandingPlayRate = 1.0f;
+
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Anim Graph - Grounded")
+	float CrouchingPlayRate = 1.0f;
+
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Anim Graph - Grounded")
+	float StrideBlend = 0.0f;
+
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Anim Graph - Grounded")
+	float FYaw = 0.0f;
+
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Anim Graph - Grounded")
+	float BYaw = 0.0f;
+
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Anim Graph - Grounded")
+	float LYaw = 0.0f;
+
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Anim Graph - Grounded")
+	float RYaw = 0.0f;
+};
+
+/*单个转身动画资源包*/
+USTRUCT(BlueprintType)
+struct FyyTurnInPlaceAsset
+{
+	GENERATED_BODY()
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "ALS|Turn In Place")
+	TObjectPtr<UAnimSequenceBase> Animation = nullptr;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "ALS|Turn In Place")
+	float AnimatedAngle = 0.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "ALS|Turn In Place")
+	FName SlotName = NAME_None;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "ALS|Turn In Place")
+	float PlayRate = 1.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "ALS|Turn In Place")
+	bool ScaleTurnAngle = true;
+};
+
+
+
+
+/* 角色原地转身动画控制器 */
+USTRUCT(BlueprintType)
+struct FyyAnimTurnInPlace
+{
+	GENERATED_BODY()
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Turn In Place")
+	float TurnCheckMinAngle = 45.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Turn In Place")
+	float Turn180Threshold = 130.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Turn In Place")
+	float AimYawRateLimit = 50.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Turn In Place")
+	float ElapsedDelayTime = 0.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Turn In Place")
+	float MinAngleDelay = 0.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Turn In Place")
+	float MaxAngleDelay = 0.75f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Turn In Place")
+	FyyTurnInPlaceAsset N_TurnIP_L90;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Turn In Place")
+	FyyTurnInPlaceAsset N_TurnIP_R90;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Turn In Place")
+	FyyTurnInPlaceAsset N_TurnIP_L180;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Turn In Place")
+	FyyTurnInPlaceAsset N_TurnIP_R180;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Turn In Place")
+	FyyTurnInPlaceAsset CLF_TurnIP_L90;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Turn In Place")
+	FyyTurnInPlaceAsset CLF_TurnIP_R90;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Turn In Place")
+	FyyTurnInPlaceAsset CLF_TurnIP_L180;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Turn In Place")
+	FyyTurnInPlaceAsset CLF_TurnIP_R180;
+};
+
+
+/*当前速度在每个方向上的分量比例，用于驱动多方向移动动画的混合*/
+USTRUCT(BlueprintType)
+struct FyyVelocityBlend
+{
+	GENERATED_BODY()
+	
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "ALS|Anim Graph - Grounded")
+	float F = 0.0f;
+
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "ALS|Anim Graph - Grounded")
+	float B = 0.0f;
+
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "ALS|Anim Graph - Grounded")
+	float L = 0.0f;
+
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "ALS|Anim Graph - Grounded")
+	float R = 0.0f;
+};
+
+/*身体倾斜量, 范围-1.0 ~ 1.0*/
+USTRUCT(BlueprintType)
+struct FyyLeanAmount
+{
+	GENERATED_BODY()
+
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "ALS|Anim Graph - Grounded")
+	float LR = 0.0f;
+
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "ALS|Anim Graph - Grounded")
+	float FB = 0.0f;
+};
+
+
+UENUM(BlueprintType, meta = (ScriptName = "ALS_MovementDirection"))
+enum class EyyMovementDirection : uint8
+{
+	Forward,
+	Right,
+	Left,
+	Backward
+};
+
+USTRUCT(BlueprintType)
+struct FyyMovementDirection
+{
+	GENERATED_BODY()
+	
+private:
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, meta = (AllowPrivateAccess = true), Category = "ALS|Movement System")
+	EyyMovementDirection Direction = EyyMovementDirection::Forward;
+	
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, meta = (AllowPrivateAccess = true), Category = "ALS|Movement System")
+	bool Forward_ = true;
+
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, meta = (AllowPrivateAccess = true), Category = "ALS|Movement System")
+	bool Right_ = false;
+
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, meta = (AllowPrivateAccess = true), Category = "ALS|Movement System")
+	bool Left_ = false;
+
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, meta = (AllowPrivateAccess = true), Category = "ALS|Movement System")
+	bool Backward_ = false;
+
+public:
+	FyyMovementDirection()
+	{
+	}
+
+	FyyMovementDirection(const EyyMovementDirection InitialMovementDirection)
+	{
+		*this = InitialMovementDirection;
+	}
+
+	const bool& Forward() const { return Forward_; }
+	const bool& Right() const { return Right_; }
+	const bool& Left() const { return Left_; }
+	const bool& Backward() const { return Backward_; }
+
+	operator EyyMovementDirection() const { return Direction; }
+
+	void operator=(const EyyMovementDirection NewMovementDirection)
+	{
+		Direction = NewMovementDirection;
+		Forward_ = Direction == EyyMovementDirection::Forward;
+		Right_ = Direction == EyyMovementDirection::Right;
+		Left_ = Direction == EyyMovementDirection::Left;
+		Backward_ = Direction == EyyMovementDirection::Backward;
+	}
+
+	
+};
+
+USTRUCT(BlueprintType)
+struct FyyAnimRotateInPlace
+{
+	GENERATED_BODY()
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "ALS|Rotate In Place")
+	float RotateMinThreshold = -50.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "ALS|Rotate In Place")
+	float RotateMaxThreshold = 50.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "ALS|Rotate In Place")
+	float AimYawRateMinRange = 90.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "ALS|Rotate In Place")
+	float AimYawRateMaxRange = 270.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "ALS|Rotate In Place")
+	float MinPlayRate = 1.15f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "ALS|Rotate In Place")
+	float MaxPlayRate = 3.0f;
+};
+
+USTRUCT(BlueprintType)
+struct FyyDynamicMontageParams
+{
+	GENERATED_BODY()
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ALS|Dynamic Transition")
+	TObjectPtr<UAnimSequenceBase> Animation = nullptr;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ALS|Dynamic Transition")
+	float BlendInTime = 0.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ALS|Dynamic Transition")
+	float BlendOutTime = 0.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ALS|Dynamic Transition")
+	float PlayRate = 0.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ALS|Dynamic Transition")
+	float StartTime = 0.0f;
+};
+
+
+
+
+
+
+
+
+
+
+
 
 
 
