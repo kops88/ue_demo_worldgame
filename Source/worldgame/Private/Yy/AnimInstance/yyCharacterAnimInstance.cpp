@@ -5,14 +5,19 @@
 #include "Yy/Character/yyBaseCharacter.h"
 // AyyBaseCharacter
 
+/* NAME_BasePose_CLF 深蹲的权重, 1为深蹲状态, 0为站立状态*/
 static const FName NAME_BasePose_CLF(TEXT("BasePose_CLF"));
-
+/* 1 - NAME_BasePose_CLF */
 static const FName NAME_BasePose_N(TEXT("BasePose_N"));
+
+
 static const FName NAME_Enable_FootIK_R(TEXT("Enable_FootIK_R"));
 static const FName NAME_Enable_FootIK_L(TEXT("Enable_FootIK_L"));
 static const FName NAME_Enable_HandIK_L(TEXT("Enable_HandIK_L"));
 static const FName NAME_Enable_HandIK_R(TEXT("Enable_HandIK_R"));
+/*控制 原地转身时(TurnInPlace)时脚步锁住*/
 static const FName NAME_Enable_Transition(TEXT("Enable_Transition"));
+/* 曲线值为1时, 保持脚步位置并锁在原地, 避免脚步跟着走*/
 static const FName NAME_FootLock_L(TEXT("FootLock_L"));
 static const FName NAME_FootLock_R(TEXT("FootLock_R"));
 static const FName NAME_Grounded___Slot(TEXT("Grounded Slot"));
@@ -31,6 +36,7 @@ static const FName NAME_Mask_LandPrediction(TEXT("Mask_LandPrediction"));
 static const FName NAME__ALSCharacterAnimInstance__RotationAmount(TEXT("RotationAmount"));
 static const FName NAME_VB___foot_target_l(TEXT("VB foot_target_l"));
 static const FName NAME_VB___foot_target_r(TEXT("VB foot_target_r"));
+/* apply additive yy_n_lean 的 alpha */
 static const FName NAME_W_Gait(TEXT("W_Gait"));
 static const FName NAME__ALSCharacterAnimInstance__root(TEXT("root"));
 
@@ -668,7 +674,7 @@ void UyyCharacterAnimInstance::SetFootOffsets(float DeltaSeconds, FName EnableFo
 	check(World);
 	
 	FCollisionQueryParams Params;
-	Params.AddIgnoredActor(Character);
+	Params.AddIgnoredActor(Character.Get());
 	
 	const FVector TraceStart = IKFootFloorLoc + FVector(0.0, 0.0, Config.IK_TraceDistanceAboveFoot);
 	const FVector TraceEnd = IKFootFloorLoc - FVector(0.0, 0.0, Config.IK_TraceDistanceBelowFoot);

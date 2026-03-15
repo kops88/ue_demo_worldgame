@@ -1,6 +1,23 @@
 #include "Yy/Character/yyCharacterMovementComponent.h"
 
 
+void UyyCharacterMovementComponent::OnMovementUpdated(float DeltaTime, const FVector& OldLocation,
+	const FVector& OldVelocity)
+{
+	Super::OnMovementUpdated(DeltaTime, OldLocation, OldVelocity);
+	if (!CharacterOwner)
+	{
+		return;
+	}
+	
+	if (bRequestMovementSettingsChange)
+	{
+		const float UpdateMaxWalkSpeed = CurrentMovementSettings.GetSpeedForGait(AllowedGait);
+		MaxWalkSpeed = UpdateMaxWalkSpeed;
+		MaxWalkSpeedCrouched = UpdateMaxWalkSpeed;
+		bRequestMovementSettingsChange = false;
+	}
+}
 
 /* 将UCMC当前的speed映射到0-3的范围 */
 float UyyCharacterMovementComponent::GetMappedSpeed() const

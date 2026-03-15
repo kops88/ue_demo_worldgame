@@ -173,7 +173,7 @@ protected:
 	void SetActorLocationDuringRagdoll(float DeltaTime);
 	virtual void OnMovementModeChanged(EMovementMode PrevMovementMode, uint8 PreviousCustomMode = 0) override;
 
-	
+	/* 速度配置 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Movement System")
 	FDataTableRowHandle MovementModel;
 	UPROPERTY(BlueprintReadOnly, Category = "Movement System")
@@ -188,7 +188,7 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "State Values")
 	EyyOverlayState OverlayState = EyyOverlayState::Default;
 	UPROPERTY(BlueprintReadOnly, Category = "ALS|State Values")
-	EALSGroundedEntryState GroundedEntryState;
+	EyyGroundedEntryState GroundedEntryState = EyyGroundedEntryState::None;
 	UPROPERTY(BlueprintReadOnly, Category = "State Values")
 	EyyMovementAction MovementAction = EyyMovementAction::None;
 	UPROPERTY(BlueprintReadOnly, Category = "Rotation System")
@@ -234,7 +234,6 @@ protected:
 	bool bRightShoulder = false;
 	UPROPERTY(BlueprintReadOnly, Category = "ALS|Essential Information")
 	FVector Acceleration = FVector::ZeroVector;
-	UPROPERTY(BlueprintReadOnly, Category = "ALS|State Values")
 	
 	/* camera */
 	UPROPERTY(BlueprintReadOnly, Category = "Camera")

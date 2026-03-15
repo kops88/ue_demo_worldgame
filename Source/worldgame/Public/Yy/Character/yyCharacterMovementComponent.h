@@ -16,6 +16,9 @@ class WORLDGAME_API UyyCharacterMovementComponent : public UCharacterMovementCom
 	GENERATED_BODY()
 	public:
 	
+	virtual void OnMovementUpdated(float DeltaTime, const FVector& OldLocation, const FVector& OldVelocity) override;
+	
+	
 	// Movement Settings Variables
 	UPROPERTY()
 	uint8 bRequestMovementSettingsChange = 1;
@@ -25,6 +28,7 @@ class WORLDGAME_API UyyCharacterMovementComponent : public UCharacterMovementCom
 	void SetMovementSettings(FyyMovementSettings NewMovementSettings);
 	UFUNCTION(BlueprintCallable, Category = "Movement Settings")
 	void SetAllowedGait(EyyGait NewAllowedGait);
+	/* 运行时数据 */
 	UPROPERTY(BlueprintReadOnly, Category = "Movement System")
 	FyyMovementSettings CurrentMovementSettings;
 	UPROPERTY()

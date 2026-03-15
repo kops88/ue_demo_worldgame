@@ -922,6 +922,7 @@ void UALSCharacterAnimInstance::TurnInPlace(FRotator TargetRotation, float PlayR
 	if (TargetTurnAsset.ScaleTurnAngle)
 	{
 		Grounded.RotationScale = (TurnAngle / TargetTurnAsset.AnimatedAngle) * TargetTurnAsset.PlayRate * PlayRateScale;
+		UE_LOG(LogTemp, Log, TEXT("RotationScale: %f"), Grounded.RotationScale);
 	}
 	else
 	{

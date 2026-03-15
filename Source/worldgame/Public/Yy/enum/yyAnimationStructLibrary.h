@@ -1,5 +1,8 @@
 ﻿#pragma once
-#include "yyCharacterStructLibrary.h"
+
+#include "CoreMinimal.h"
+#include "Yy/enum/yyCharacterStructLibrary.h"
+#include "yyAnimationStructLibrary.generated.h"
 
 /* 用于动画蓝图中的空中信息*/
 USTRUCT(BlueprintType)
@@ -117,22 +120,6 @@ struct FyyAnimGraphLayerBlending
 	float EnableHandIK_L = 1.0f;
 	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Anim Graph - Layer Blending")
 	float EnableHandIK_R = 1.0f;
-};
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
 };
 
 

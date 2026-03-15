@@ -646,6 +646,9 @@ struct FyyAnimGraphGrounded
 	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Anim Graph - Grounded")
 	bool bRotateR = false;
 
+	 /* 
+	  * 状态机 base layer - n locomotion detail - n runing -> first pivot 的规则
+	  */
 	UPROPERTY(VisibleDefaultsOnly, BlueprintReadWrite, Category = "Anim Graph - Grounded")
 	bool bPivot = false;
 
@@ -670,15 +673,19 @@ struct FyyAnimGraphGrounded
 	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Anim Graph - Grounded")
 	float StrideBlend = 0.0f;
 
+	/* 曲线 cycleBlending 中的 move f 状态*/
 	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Anim Graph - Grounded")
 	float FYaw = 0.0f;
 
+	/* 曲线*/
 	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Anim Graph - Grounded")
 	float BYaw = 0.0f;
 
+	/* 曲线*/
 	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Anim Graph - Grounded")
 	float LYaw = 0.0f;
 
+	/* 曲线*/
 	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Anim Graph - Grounded")
 	float RYaw = 0.0f;
 };

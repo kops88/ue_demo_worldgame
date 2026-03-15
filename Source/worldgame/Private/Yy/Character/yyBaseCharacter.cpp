@@ -92,7 +92,6 @@ void AyyBaseCharacter::ForwardMovementAction_Implementation(float Value)
 		const FRotator DirRotator(0.0f, AimingRotation.Yaw, 0.0f);
 		AddMovementInput(UKismetMathLibrary::GetForwardVector(DirRotator), Value);
 	}
-	
 }
 
 void AyyBaseCharacter::RightMovementAction_Implementation(float Value)
@@ -698,7 +697,6 @@ FyyMovementSettings AyyBaseCharacter::GetTargetMovementSettings() const
 		{
 			return MovementData.Aiming.Crouching;
 		}
-		return MovementData.VelocityDirection.Standing;
 	}
 	return MovementData.VelocityDirection.Standing;
 }

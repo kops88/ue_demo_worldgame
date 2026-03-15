@@ -4,6 +4,7 @@
 #include "Animation/AnimInstance.h"
 #include "Yy/enum/yyAnimationStructLibrary.h"
 #include "Yy/enum/yyCharacterStructLibrary.h"
+#include "Yy/Character/yyBaseCharacter.h"
 #include "yyCharacterAnimInstance.generated.h"
 
 UCLASS()
@@ -46,6 +47,10 @@ public:
 	FyyStance Stance = EyyStance::Standing;
 	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Read Only Data|Character Information")
 	FyyRotationMode RotationMode = EyyRotationMode::VelocityDirection;
+	/* 
+	 * 用于状态机move的转换条件
+	 * BlendPose用的枚举
+	 */
 	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Read Only Data|Character Information")
 	FyyGait Gait = EyyGait::Walking;
 	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Read Only Data|Character Information")
@@ -74,6 +79,11 @@ public:
 	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Read Only Data|Anim Graph - Foot IK", Meta = (
 		ShowOnlyInnerProperties))
 	FyyAnimGraphFootIK FootIKValues;
+	
+	/* 
+	 * 状态机中Ground N 的转换条件
+	 * WalkRun的混合空间的 stride-standingPlayRate, walk/run - walkRunBlend, playrate
+	 */
 	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Read Only Data|Anim Graph - Grounded", Meta = (
 		ShowOnlyInnerProperties))
 	FyyAnimGraphGrounded Grounded;
@@ -82,13 +92,20 @@ public:
 		ShowOnlyInnerProperties))
 	FyyAnimTurnInPlace TurnInPlaceValues;
 	
+	/* 用于状态机中RunStart的动画序列BlendMulti混合的FBRL权重*/
 	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Read Only Data|Anim Graph - Grounded")
 	FyyVelocityBlend VelocityBlend;
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Configuration|Blend Curves")
 	TObjectPtr<UCurveFloat> DiagonalScaleAmountCurve = nullptr;
+	/* 
+	 * x: 用于混合 sprint_f 和 sprint_f_impulse
+	 */
 	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Read Only Data|Anim Graph - Grounded")
 	FVector RelativeAccelerationAmount = FVector::ZeroVector;
+	/*
+	 * 用于混合空间 yy_n_lean 的轴输入
+	 */
 	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Read Only Data|Anim Graph - Grounded")
 	FyyLeanAmount LeanAmount;
 	
@@ -101,6 +118,8 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Configuration|Blend Curves")
 	TObjectPtr<UCurveFloat> StrideBlend_C_Walk = nullptr;
 	
+	/* 控制N cycleBlending 中 N DirectionState 中的转换条件 (常驻效果) */
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Read Only Data|Anim Graph - Grounded")
 	FyyMovementDirection MovementDirection = EyyMovementDirection::Forward;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Configuration|Blend Curves")
 	TObjectPtr<UCurveVector> YawOffset_FB = nullptr;
