@@ -634,15 +634,18 @@ struct FyyAnimGraphGrounded
 {
 	GENERATED_BODY()
 	
+	/* base layer - locomotion states - n stop - n stop states - plant left foot 状态的 混合方向枚举*/
 	UPROPERTY(VisibleDefaultsOnly, BlueprintReadWrite, Category = "Anim Graph - Grounded")
 	EyyHipsDirection TrackedHipsDirection = EyyHipsDirection::F;
 	
 	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Anim Graph - Grounded")
 	bool bShouldMove = false; // Should be false initially
 
+	/* baselayer n - locomotion states - n not moving - n rotate left 90 转换规则*/
 	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Anim Graph - Grounded")
 	bool bRotateL = false;
 
+	/* baselayer n - locomotion states - n not moving - n rotate right 90 转换规则*/
 	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Anim Graph - Grounded")
 	bool bRotateR = false;
 
@@ -652,6 +655,7 @@ struct FyyAnimGraphGrounded
 	UPROPERTY(VisibleDefaultsOnly, BlueprintReadWrite, Category = "Anim Graph - Grounded")
 	bool bPivot = false;
 
+	/* 播放动画序列, 直接控制playRate参数: ALS_N_Rotate_L90*/
 	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Anim Graph - Grounded")
 	float RotateRate = 1.0f;
 

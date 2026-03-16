@@ -568,6 +568,7 @@ EyyMovementDirection UyyCharacterAnimInstance::CalculateMovementDirection() cons
 	return UyyCharacterAnimInstance::CalculateQuadrant(MovementDirection, 70.0f, -70.0f, 110.0f, -110.0f, 5.0f, Delta.Yaw);
 }
 
+/* 状态机 base layer - locomotion states - n stop - stop states 状态机中落脚处理的状态条件*/
 void UyyCharacterAnimInstance::SetFootLocking(float DeltaSeconds, FName EnableFootIKCurve, FName FootLockCurve,
                                               FName IKFootBone, float& CurFootLockAlpha, bool& UseFootLockCurve, FVector& CurFootLockLoc,
                                               FRotator& CurFootLockRot)
