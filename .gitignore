@@ -16,6 +16,10 @@
 # JetBrains Rider
 .idea/
 *.sln.iml
+.clangd
+.clang-format
+worldgame.code-workspace
+
 
 # Compiled Object files
 *.slo
