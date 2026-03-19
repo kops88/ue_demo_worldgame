@@ -1,0 +1,15 @@
+/.codebuddy
+/.git
+/.idea
+/.vs
+/.vscode
+/Content
+/DerivedDataCache
+/Intermediate
+/note
+/Saved
+/Plugins/ALS-Community/Content
+/Plugins/ALS-Community/Intermediate
+/.clangd
+/.clang-format
+

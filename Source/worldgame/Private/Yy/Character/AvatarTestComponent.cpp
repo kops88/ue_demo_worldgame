@@ -1,5 +1,6 @@
 #include "Yy/Character/AvatarTestComponent.h"
 
+#include "Components/SkeletalMeshComponent.h"
 #include "PropertyEditorModule.h"
 
 UAvatarTestComponent::UAvatarTestComponent()
@@ -22,24 +23,29 @@ void UAvatarTestComponent::BeginPlay()
 		TEXT("ik_foot_root"),
 		TEXT("ik_hand_root"),
 	});
-	SlotHiddenBones.Add(TEXT("LowerBody"), {TEXT("spine_01"),
-		TEXT("ik_foot_root"),
-		TEXT("ik_hand_root")});
-	SlotHiddenBones.Add(TEXT("Head"), {TEXT("spine_01"),
-		TEXT("Thigh_L"),
-		TEXT("Thigh_R"),
-		TEXT("ik_foot_root"),
-		TEXT("ik_hand_root"),});
-	SlotUnHiddenBones.Add(TEXT("Head"), {TEXT("neck_01"),
-		TEXT("head"),});
-	SlotHiddenBones.Add(TEXT("Hands"), {
+	SlotHiddenBones.Add(TEXT("LowerBody"), {
 		TEXT("spine_01"),
+		TEXT("ik_foot_root"),
+		TEXT("ik_hand_root")
+	});
+	SlotHiddenBones.Add(TEXT("Head"), {
 		TEXT("Thigh_L"),
 		TEXT("Thigh_R"),
+		TEXT("clavicle_l"),
+		TEXT("clavicle_r"),
 		TEXT("ik_foot_root"),
-		TEXT("ik_hand_root"),});
-	SlotUnHiddenBones.Add(TEXT("Hands"), {TEXT("Hand_L"),
-		TEXT("hand_r"),});
+		TEXT("ik_hand_root")
+	});
+	// 移除 Head 的 UnHiddenBones，因为不再隐藏父骨骼
+	
+	SlotHiddenBones.Add(TEXT("Hands"), {
+		TEXT("Thigh_L"),
+		TEXT("Thigh_R"),
+		TEXT("neck_01"),
+		TEXT("ik_foot_root"),
+		TEXT("ik_hand_root")
+	});
+	// 移除 Hands 的 UnHiddenBones，因为不再隐藏父骨骼
 
 	FindComponentsByTag();
 	
@@ -68,7 +74,7 @@ void UAvatarTestComponent::FindComponentsByTag()
 		return;
 	}	
 	
-	// tag -> slotName
+	// tag -> slotName -> SlaveComp, 在验证版中, 不代表实际的slot插槽
 	const TArray<TPair<FName, FName>> TagToSlotMapping = {
 		{TEXT("Slave_UpperBody"), TEXT("UpperBody")},
 		{TEXT("Slave_LowerBody"), TEXT("LowerBody")},
@@ -107,8 +113,8 @@ void UAvatarTestComponent::SetupSlave(FName SlotName, USkeletalMeshComponent* Sl
 		*SlotName.ToString(), BonesToHide.Num());
 	
 	// slave直接拷贝master的骨骼姿态, 而不独立计算
-	Slave->SetLeaderPoseComponent(MasterMesh);
-	
+	//Slave->SetLeaderPoseComponent(MasterMesh);
+        Slave->SetAnimClass(MasterMesh->GetAnimClass());
 	for (const FName& BoneName : BonesToHide)
 	{
 		Slave->HideBoneByName(BoneName, PBO_None);
@@ -120,7 +126,8 @@ void UAvatarTestComponent::SetupSlave(FName SlotName, USkeletalMeshComponent* Sl
 		for (const FName& BoneName : *BonesToUnHide)
 		{
 			Slave->UnHideBoneByName(BoneName);
-			UE_LOG(LogTemp, Warning, TEXT("[AvatarTest]   UnHideBone: '%s'"), *BoneName.ToString());		}
+			UE_LOG(LogTemp, Warning, TEXT("[AvatarTest]   UnHideBone: '%s'"), *BoneName.ToString());	
+		}
 	}
 }
 
@@ -161,7 +168,8 @@ void UAvatarTestComponent::SwapSlotMesh(FName SlotName, USkeletalMesh* NewMesh)
 	}
 	USkeletalMeshComponent* SlaveComp = *SlavePtr;
 	SlaveComp->SetSkeletalMeshAsset(NewMesh);
-	SlaveComp->SetLeaderPoseComponent(MasterMesh);
+	//SlaveComp->SetLeaderPoseComponent(MasterMesh);
+
 	
 	if (const TArray<FName>* BonesToHide = SlotHiddenBones.Find(SlotName))
 	{
@@ -170,6 +178,7 @@ void UAvatarTestComponent::SwapSlotMesh(FName SlotName, USkeletalMesh* NewMesh)
 			SlaveComp->HideBoneByName(BoneName, EPhysBodyOp::PBO_None);
 		}
 	}
+    
 
 	// 4. 反隐藏
 	if (const TArray<FName>* BonesToUnHide = SlotUnHiddenBones.Find(SlotName))
@@ -187,4 +196,18 @@ void UAvatarTestComponent::TickComponent(float DeltaTime, ELevelTick TickType, F
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
