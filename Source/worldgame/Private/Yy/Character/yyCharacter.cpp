@@ -1,4 +1,7 @@
 #include "Yy/Character/yyCharacter.h"
+#include "Yy/Manager/YyCharacterManager.h"
+#include "Engine/GameInstance.h"
+
 
 AyyCharacter::AyyCharacter(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -13,8 +16,23 @@ AyyCharacter::AyyCharacter(const FObjectInitializer& ObjectInitializer)
 	StaticMesh->SetupAttachment(HeldObjectRoot);
 	
 	// AIControllerClass = AALSAIController::StaticClass();
-	
-	
+}
+
+/* 更新HeldObject动画 */
+void AyyCharacter::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+	UpdateHeldObjectAnimations();
+}
+
+/* 仅更新HeldObject */
+void AyyCharacter::BeginPlay()
+{
+	Super::BeginPlay();
+	auto CharManager = GetGameInstance()->GetSubsystem<UYyCharacterManager>();
+	CharUID = CharManager->GetCreateID();
+	CharManager->RegisterCharacter(CharUID, this);
+	UpdateHeldObject();
 }
 
 /* 清空StaticMesh, SkeletalMesh, AnimInstance的指针*/
@@ -58,19 +76,7 @@ void AyyCharacter::AttachToHand(UStaticMesh* NewStaticMesh, USkeletalMesh* NewSk
 	HeldObjectRoot->SetRelativeLocation(Offset);
 }
 
-/* 更新HeldObject动画 */
-void AyyCharacter::Tick(float DeltaTime)
-{
-	Super::Tick(DeltaTime);
-	UpdateHeldObjectAnimations();
-}
 
-/* 仅更新HeldObject */
-void AyyCharacter::BeginPlay()
-{
-	Super::BeginPlay();
-	UpdateHeldObject();
-}
 
 void AyyCharacter::OnOverlayStateChanged(EyyOverlayState PreviousState)
 {

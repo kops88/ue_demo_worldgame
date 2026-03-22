@@ -1,16 +1,16 @@
 #include "Yy/Character/AvatarTestComponent.h"
-
 #include "Components/SkeletalMeshComponent.h"
 #include "Engine/SkeletalMesh.h"
-#include "PropertyEditorModule.h"
+#include "SkeletalMeshMerge.h"
+#include "Yy/Character/yyCharacter.h"
+#include "Rendering/SkeletalMeshModel.h"
 
-// AvaLog 宏已在头文件中定义, 支持 FName/FText/FString 自动转换
+
 
 UAvatarTestComponent::UAvatarTestComponent()
 {
 	PrimaryComponentTick.bCanEverTick = false;
 }
-
 
 void UAvatarTestComponent::BeginPlay()
 {
@@ -22,6 +22,7 @@ void UAvatarTestComponent::BeginPlay()
 	{
 		// 隐藏 Master 的渲染，但保持动画求值正常运行
 		MasterMesh->SetHiddenInGame(true);
+		MasterMesh->bCastDynamicShadow = false;
 		// 强制 Master 即使不可见也要每帧计算动画
 		MasterMesh->VisibilityBasedAnimTickOption = EVisibilityBasedAnimTickOption::AlwaysTickPoseAndRefreshBones;
 		InitializeSlaves();
@@ -46,6 +47,7 @@ void UAvatarTestComponent::SetSlaveMesh(FName SlotName, TSoftObjectPtr<USkeletal
 	AvaLog("SetSlaveMesh() 开始异步加载 Mesh 资源...");
 }
 
+
 void UAvatarTestComponent::SetDefaultMesh()
 {
 	if (DefaultMeshMap.Num() == 0)
@@ -56,7 +58,7 @@ void UAvatarTestComponent::SetDefaultMesh()
 
 	// 收集所有需要加载的软引用路径
 	TArray<FSoftObjectPath> AssetsToLoad;
-	for (const auto& [SlotName, SoftMesh] : DefaultMeshMap)
+	for (const auto& [ tag, SoftMesh] : DefaultMeshMap)
 	{
 		if (!SoftMesh.IsNull())
 		{
@@ -79,12 +81,12 @@ void UAvatarTestComponent::SetDefaultMesh()
 	AvaLog("SetDefaultMesh() 开始异步加载 %d 个Mesh资源...", AssetsToLoad.Num());
 }
 
-
+/* SetDefaultMesh 资源加载完后的回调 */
 void UAvatarTestComponent::OnMeshLoaded(TMap<FName, TSoftObjectPtr<USkeletalMesh>>& MeshMap)
 {
 	AvaLog("OnDefaultMeshLoaded() 异步加载完成。");
 
-	for (const auto& [SlotName, SoftMesh] : MeshMap)
+	for (const auto& [SlotTag, SoftMesh] : MeshMap)
 	{
 		if (SoftMesh.IsNull()) continue;
 
@@ -92,15 +94,15 @@ void UAvatarTestComponent::OnMeshLoaded(TMap<FName, TSoftObjectPtr<USkeletalMesh
 		USkeletalMesh* LoadedMesh = SoftMesh.Get();
 		if (!LoadedMesh)
 		{
-			AvaLog("OnDefaultMeshLoaded() Slot '%s' 的 Mesh 加载失败。", SlotName);
+			AvaLog("OnDefaultMeshLoaded() Slot '%s' 的 Mesh 加载失败。", SlotTag);
 			continue;
 		}
 
 		// 找到对应的 SlaveComp 并设置 Mesh
-		USkeletalMeshComponent** SlavePtr = SlaveMap.Find(SlotName);
+		USkeletalMeshComponent** SlavePtr = SlaveMap.Find(SlotTag);
 		if (!SlavePtr || !(*SlavePtr))
 		{
-			AvaLog("OnDefaultMeshLoaded() Slot '%s' 对应的 SlaveComp 未找到。", SlotName);
+			AvaLog("OnDefaultMeshLoaded() Slot '%s' 对应的 SlaveComp 未找到。", SlotTag);
 			continue;
 		}
 
@@ -108,10 +110,95 @@ void UAvatarTestComponent::OnMeshLoaded(TMap<FName, TSoftObjectPtr<USkeletalMesh
 		SlaveComp->SetSkeletalMeshAsset(LoadedMesh);
 		SlaveComp->SetLeaderPoseComponent(MasterMesh);
 
-		AvaLog("OnDefaultMeshLoaded() Slot '%s' 已设置 Mesh '%s'。", SlotName, LoadedMesh->GetName());
+		AvaLog("OnDefaultMeshLoaded() Slot '%s' 已设置 Mesh '%s'。", SlotTag, LoadedMesh->GetName());
+	}
+	IsLoadMesh = true;
+}
+
+/* SkeletalMesh的Draw Call数量 = 材质槽数量（Material Slots） */
+void UAvatarTestComponent::MergeMesh()
+{
+	TArray<USkeletalMesh*> MeshesToMerge;
+	//TArray<FTransform> MeshRelativeTransforms;
+	
+	for (auto& [Tag, Comp] : SlaveMap)
+	{
+		USkeletalMesh* Mesh = Comp->GetSkeletalMeshAsset();
+		if (Comp && Mesh)
+		{
+			if (!Comp)
+				return;
+			MeshesToMerge.Add(Mesh);
+			// 获取 Slave 相对于 Master 的变换，用于后续变换顶点
+			//FTransform RelativeTransform = Comp->GetRelativeTransform();
+			//MeshRelativeTransforms.Add(RelativeTransform);
+		}
+	}
+	
+	if (MeshesToMerge.Num() == 0)
+	{
+		AvaLog("MergeMesh(), no meshes to merge");
+		return;
 	}
 
-	IsLoadMesh = true;
+	
+
+	// 创建合并后的 mesh
+	USkeletalMesh* MergedMesh = NewObject<USkeletalMesh>(this, TEXT("MergedSkeletalMesh"));
+	TArray<FSkelMeshMergeSectionMapping> SectionMappings;
+	TArray<FSkelMeshMergeMeshUVTransforms> UVTransforms;
+	
+	// TODO: 如果需要考虑相对变换，需要自定义顶点变换逻辑
+	// 目前 UE 的 FSkeletalMeshMerge 不支持自动应用相对变换
+	// 替代方案：确保 SlaveMesh 组件的 RelativeTransform 是 Identity
+
+	FSkeletalMeshMerge Merger(
+		MergedMesh,
+		MeshesToMerge,
+		SectionMappings,
+		0
+	);
+	
+	if (Merger.DoMerge())
+	{
+		int32 SectionCount = 0;
+		if (!MergedMesh->GetImportedModel()->LODModels.IsEmpty())
+		{
+			SectionCount = MergedMesh->GetImportedModel()->LODModels[0].Sections.Num();
+		}
+		AvaLog("合并后Section数量: %d", SectionCount);  // 如果输出3，这就是原因！
+		// 清除后再设置新 mesh
+		auto BodyMesh = SlaveMap[MainBody];
+		if (!BodyMesh) return;
+		BodyMesh->SetSkeletalMeshAsset(MergedMesh);
+		//BodyMesh->SetHiddenInGame(false);
+		//BodyMesh->VisibilityBasedAnimTickOption = EVisibilityBasedAnimTickOption::AlwaysTickPoseAndRefreshBones;
+		// BodyMesh->MarkRenderStateDirty();
+		
+		for (auto& [TagName, Comp] : SlaveMap)
+		{
+			if (Comp && TagName != MainBody)
+			{
+				Comp->SetHiddenInGame(true);
+				// Comp->SetLeaderPoseComponent(nullptr);
+				Comp->DestroyComponent();
+			}
+		}
+		AvaLog("%s MergeMesh() 成功合并 %d 个网格", Cast<AyyCharacter>(GetOwner())->GetCharcterUID(), MeshesToMerge.Num());
+	}
+	else
+	{
+		AvaLog("MergeMesh() 合并失败");
+		// 恢复显示 Slave
+		for (auto& [TagName, Comp] : SlaveMap)
+		{
+			if (Comp)
+			{
+				Comp->SetHiddenInGame(false);
+				Comp->SetLeaderPoseComponent(MasterMesh);
+			}
+		}
+	}
 }
 
 /** 找到对应的组件-> MasterMesh, SlaveMap */
@@ -131,21 +218,14 @@ void UAvatarTestComponent::FindComponentsByTag()
 	else
 	{
 		return;
-	}	
+	}
 	
-	// tag -> slotName -> SlaveComp, 在验证版中, 不代表实际的slot插槽
-	const TArray<TPair<FName, FName>> TagToSlotMapping = {
-		{TEXT("Slave_UpperBody"), TEXT("UpperBody")},
-		{TEXT("Slave_LowerBody"), TEXT("LowerBody")},
-		{TEXT("Slave_Head"),      TEXT("Head")},
-		{TEXT("Slave_Hands"),     TEXT("Hands")},
-	};
-	for (const auto& [Tag, SlotName] : TagToSlotMapping)
+	for (const auto Tag : SlaveCompTag)
 	{
 		TArray<UActorComponent*> Results = Owner->GetComponentsByTag(USkeletalMeshComponent::StaticClass(), Tag);
 		if (Results.Num()> 0)
 		{
-			SlaveMap.Add(SlotName, Cast<USkeletalMeshComponent>(Results[0]));
+			SlaveMap.Add(Tag, Cast<USkeletalMeshComponent>(Results[0]));
 		}
 	}
 }
@@ -158,7 +238,7 @@ void UAvatarTestComponent::InitializeSlaves()
 		if (!SlaveComp) {
 			AvaLog("InitializeSlaves(), SlaveComp: %s is null", SlotName);
 			continue;
-		};
+		}
 
 		SlaveComp->SetLeaderPoseComponent(MasterMesh);
 	}
@@ -221,14 +301,9 @@ void UAvatarTestComponent::TickComponent(float DeltaTime, ELevelTick TickType, F
 }
 
 
-
-
-
-
-
 void UAvatarTestComponent::AvaLogImpl(const FString& Msg)
 {
-	UE_LOG(LogTemp, Log, TEXT("[AvatarTestComponent] %s"), *Msg);
+	UE_LOG(LogTemp, Log, TEXT("[AvatarTestComponent] %s"),*Msg);
 }
 
 

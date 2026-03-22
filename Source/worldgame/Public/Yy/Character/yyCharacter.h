@@ -4,6 +4,8 @@
 #include "Yy/Character/yyBaseCharacter.h"
 #include "yyCharacter.generated.h"
 
+class UYyCharacterManager;
+
 UCLASS()
 class WORLDGAME_API AyyCharacter : public AyyBaseCharacter
 {
@@ -11,6 +13,8 @@ class WORLDGAME_API AyyCharacter : public AyyBaseCharacter
 	
 public:
 	AyyCharacter(const FObjectInitializer& ObjectInitializer);
+	
+	FString GetCharcterUID() const { return CharUID; }
 	
 	UFUNCTION(BlueprintImplementableEvent, BlueprintCallable, Category = "yy|HeldObject")
 	void UpdateHeldObject();
@@ -28,7 +32,7 @@ protected:
 	virtual void BeginPlay() override;
 	
 	virtual void OnOverlayStateChanged(EyyOverlayState PreviousState) override;
-	
+
 	UFUNCTION(BlueprintImplementableEvent, BlueprintCallable, Category = "ALS|HeldObject")
 	void UpdateHeldObjectAnimations();
 	
@@ -43,12 +47,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "yy|Component")
 	TObjectPtr<UStaticMeshComponent> StaticMesh = nullptr;
 
-	
-	
-	
-	
-	
-	
+private:
+	/** 角色唯一ID */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
+	FString CharUID;
 	
 	
 };

@@ -7,6 +7,9 @@
 #include "UObject/SoftObjectPtr.h"
 #include "AvatarTestComponent.generated.h"
 
+#define MainBody TEXT("Slave_UpperBody")
+
+
 // ============ AvaLog 自动类型转换辅助 ============
 
 /** 第一层: 将 FName/FText/FString 统一转为 FString, 其他类型原样透传 */
@@ -67,7 +70,10 @@ protected:
 	/** 设置SlaveMesh, 异步 */
 	UFUNCTION(BlueprintCallable)
 	void SetSlaveMesh(FName SlotName, TSoftObjectPtr<USkeletalMesh> Mesh);
-
+	
+	/* mesh 合批, 减少draw call*/
+	UFUNCTION(BlueprintCallable)
+	void MergeMesh();
 private:
 
 	/** 有无装载Mesh到slave */
@@ -76,6 +82,8 @@ private:
 	/** 每个Slot对应的默认SkeletalMesh软引用, 在蓝图/编辑器中配置路径 slotNmae== UpperBody*/
 	UPROPERTY(EditAnywhere, Category = "Avatar|DefaultMesh")
 	TMap<FName, TSoftObjectPtr<USkeletalMesh>> DefaultMeshMap;
+	UPROPERTY(EditAnywhere, Category = "Avatar|SlaveCompTag")
+	TArray<FName> SlaveCompTag;
 
 	/** 异步加载句柄, 防止加载过程中被GC */
 	TSharedPtr<FStreamableHandle> MeshStreamableHandle;
@@ -86,9 +94,13 @@ private:
 	/** 异步加载完成回调 */
 	void OnMeshLoaded(TMap<FName, TSoftObjectPtr<USkeletalMesh>>& MeshMap);
 
+	
+		
 	void FindComponentsByTag();
 	void InitializeSlaves();
 	void SetupSlave(FName SlotName, USkeletalMeshComponent* Slave, const TArray<FName>& BonesToHide);
+	
+	/* 设置Avatar组件中设置的配置 */
 	UFUNCTION()
 	void SetDefaultMesh(); 
 
@@ -96,6 +108,7 @@ private:
 	
 	UPROPERTY()
 	USkeletalMeshComponent* MasterMesh;
+	/* SlaveTag-> Comp*/
 	UPROPERTY()
 	TMap<FName, USkeletalMeshComponent*> SlaveMap;
 	TMap<FName, TArray<FName>> SlotHiddenBones;
